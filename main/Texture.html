@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Texture</title>
     <style>
-
         body {
-        @include display(flex);
-        @include align-content(center);
+            @include display(flex);
+            @include align-content(center);
             color: #353535;
             min-height: 100vh;
             font-family: 'Open Sans', sans-serif;
@@ -24,7 +24,6 @@
             height: 100%;
             width: 100%;
         }
-
     </style>
 
 
@@ -41,116 +40,70 @@
 
 
 </head>
+
 <body>
 
 
-<div id="web-gl">
-</div>
+    <div id="web-gl">
+    </div>
 
-<script id="scriptScene0" type="text/javascript">
+    <script id="scriptScene0" type="text/javascript">
 
+        console.clear();
 
+        /*////////////////////////////////////////*/
 
-    //  Height and Width Variables
-    var width = window.innerWidth;
-    var height = window.innerHeight;
-
-    //  Basic Variables
-    var camera, renderer, scene;
-
-    var planeFight = new THREE.Mesh(), spotLight;
-
-    //  Controls Variable
-    var controls;
-    var gltfloader1;
-    var dragon;
-    var bird;
-    var tween;
-    var target = {x: 100, y: 100, z: 100};
-    var box;
-
-    init();
-    animate();
-
-
-    //  Once everything is loaded, we run our Three.js stuff.
-    function init() {
+        var scene, camera, renderer, orbit, light;
+        let renderCalls = [];
 
         scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x242426, 10, 2);
 
-        //  Cube mapping first method
-        /*
-        var path = "textures/cube/SwedishRoyalCastle/";
-        var format = '.jpg';
-        var urls = [
-        path + 'px' + format, path + 'nx' + format,
-        path + 'py' + format, path + 'ny' + format,
-        path + 'pz' + format, path + 'nz' + format
-        ];
-        var reflectionCube = new THREE.CubeTextureLoader().load( urls );
-        reflectionCube.format = THREE.RGBFormat;
-        scene.background = reflectionCube;
-        */
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 10, 600);
+        camera.position.z = 90;
 
-        //  Cube mapping second method
-        var reflectionCube = new THREE.CubeTextureLoader()
-            .setPath('../../texture/cube/skybox/')
-            .load(['px.jpg', 'nx.jpg', 'py.jpg', 'ny.jpg', 'pz.jpg', 'nz.jpg']);
-        reflectionCube.format = THREE.RGBFormat;
-        scene.background = reflectionCube;
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x242426);
+        renderer.toneMapping = THREE.LinearToneMapping;
 
-        //  Create a camera, which defines where we're looking at.
-        camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-        //  Fog(color,near,far)
-      //  scene.fog = new THREE.Fog(0xefd1b5,100, 400);
+        window.addEventListener('resize', function () {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }, false);
 
-        //  Create a render and set the size
-        renderer = new THREE.WebGLRenderer({antialias: true});
-        renderer.setClearColor(new THREE.Color(0x000000));
-        renderer.setSize(width, height);
+        document.body.appendChild(renderer.domElement);
 
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        /*////////////////////////////////////////*/
 
-        //  Enable animation loop when using damping or autorotation
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.25;
-        controls.enableZoom = false;
 
-        //  Position and point the camera to the center of the scene
-        camera.position.x = 100;
-        camera.position.y = 80;
-        camera.position.z = 200;
-        camera.lookAt(scene.position);
+        let hemiLight = new THREE.HemisphereLight(0xEBF7FD, 0xEBF7FD, 0.6);
 
-        //  Add the output of the renderer to the html element
-        document.getElementById("web-gl").appendChild(renderer.domElement);
-        window.addEventListener('keyup', onDocumentKeyUp, false);
+        hemiLight.position.set(50, 30, 30);
+        scene.add(hemiLight);
 
-        //  Add spotlight to plane.json
-        var spotLight = new THREE.SpotLight(0xffffff);
-        spotLight.angle = 0.7;
-        spotLight.penumbra = 0.3;
+        /*////////////////////////////////////////*/
 
-        //  Surface Texture
-        var texture = new THREE.TextureLoader().load('../../texture/desert-texture.jpg');
+        texture = new THREE.TextureLoader().load('../texture/desert-texture.jpg');
         texture.repeat.set(100, 100);
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
         texture.magFilter = THREE.NearestFilter;
         texture.minFilter = THREE.LinearMipMapLinearFilter;
 
-        //Surface Mesh
-        var surface = new THREE.PlaneGeometry(1300, 1350);
-        var surfaceMaterial = new THREE.MeshPhongMaterial({color: 0xcccccc, side: THREE.DoubleSide, map: texture});
+        var surface = new THREE.PlaneGeometry(5000, 5000, 40, 45);
+        var surfaceMaterial = new THREE.MeshPhongMaterial({ color: 0xcccccc, side: THREE.DoubleSide, map: texture });
         var surfaceMesh = new THREE.Mesh(surface, surfaceMaterial);
-        surfaceMesh.rotateX(Math.PI / 2);
-        surfaceMesh.position.y = -50;
-        surfaceMesh.position.z = -300;
+        surfaceMesh.position.y = 0;
+        surfaceMesh.position.z = -5;
         scene.add(surfaceMesh);
 
-        //  Road Texture
-        var textureRoad = new THREE.TextureLoader().load('../../texture/Road-Texture.jpg');
+        var textureRoad = new THREE.TextureLoader().load('../texture/Road-Texture.jpg');
 
         textureRoad.repeat.set(1, 100);
         textureRoad.wrapS = THREE.RepeatWrapping;
@@ -158,207 +111,252 @@
         textureRoad.magFilter = THREE.LinearFilter;
         textureRoad.minFilter = THREE.LinearMipMapLinearFilter;
 
-        var road = new THREE.PlaneGeometry(20, 1350);
-        var roadMaterial = new THREE.MeshPhongMaterial({color: 0xcccccc, side: THREE.DoubleSide, map: textureRoad});
-        var roadMesh = new THREE.Mesh(road, roadMaterial);
-        roadMesh.rotateX(Math.PI / 2);
-        roadMesh.position.y = -49;
-        roadMesh.position.z = -300;
-        scene.add(roadMesh);
+        /*////////////////////////////////////////*/
 
-        var roadSecond = roadMesh.clone();
-        roadSecond.position.x = -25;
-        scene.add(roadSecond);
+        let carGeometry = new THREE.BoxGeometry(20, 10, 3);
+        let carMaterial = new THREE.MeshPhongMaterial({
+            color: 0xB74242,
 
-        //  Sidewalk Texture
-        var textureSideWalk = new THREE.TextureLoader().load('../../texture/sidewalk-texture.jpg');
-        textureSideWalk.repeat.set(1, 100);
-        textureSideWalk.wrapS = THREE.RepeatWrapping;
-        textureSideWalk.wrapT = THREE.RepeatWrapping;
-        textureSideWalk.magFilter = THREE.NearestFilter;
-        textureSideWalk.minFilter = THREE.NearestFilter;
 
-        var sideWalk = new THREE.PlaneGeometry(20, 1350);
-        var sideWalkMaterial = new THREE.MeshPhongMaterial({
-            color: 0xcccccc,
-            side: THREE.DoubleSide,
-            map: textureSideWalk
+            shininess: 100,
+            emissive: 0xFF0000,
+            emissiveIntensity: 0.6
         });
 
-        var sideWalkMesh = new THREE.Mesh(sideWalk, sideWalkMaterial);
-        sideWalkMesh.rotateX(Math.PI / 2);
-        sideWalkMesh.position.y = -49;
-        sideWalkMesh.position.z = -300;
-        sideWalkMesh.position.x = -45;
-        scene.add(sideWalkMesh);
 
-        var sideWalkSecond = sideWalkMesh.clone();
-        sideWalkSecond.position.x = +20;
-        scene.add(sideWalkSecond);
-
-        //  Pavement
-        var textureBox = new THREE.TextureLoader().load('../../texture/Brick-Texture2.jpg');
-        textureBox.repeat.set(2, 110);
-        textureBox.wrapS = THREE.RepeatWrapping;
-        textureBox.wrapT = THREE.RepeatWrapping;
-        textureBox.magFilter = THREE.LinearFilter;
-        textureBox.minFilter = THREE.LinearFilter;
-
-        var boxGeometry = new THREE.BoxGeometry(3, 5, 1350);
-        var boxMaterial = new THREE.MeshPhongMaterial({color: 0xcccccc, side: THREE.DoubleSide, map: textureBox});
-         box = new THREE.Mesh(boxGeometry, boxMaterial);
-        box.position.y = -48;
-        box.position.z = -300;
-        box.position.x = -12.5;
-        scene.add(box);
-
-
-        //  ObjectLoader
-        //  Car.json
-        var objectLoader = new THREE.ObjectLoader();
-        objectLoader.load("../../model/camero-2010-low-poly-threejs/camero-2010-low-poly.json", function (obj) {
-            var obj1 = obj.clone();
-            var obj2 = obj.clone();
-            obj.position.y = -49;
-            obj.position.z = -250;
-            obj.position.x = 0;
-            obj.scale.set(4, 4, 4);
-            scene.add(obj);
-
-            obj1.position.y = -49;
-            obj1.position.z = -200;
-            obj1.position.x = 5;
-            obj1.scale.set(4, 4, 4);
-            scene.add(obj1);
-
-            obj2.position.y = -49;
-            obj2.position.z = -150;
-            obj2.position.x = 5;
-            obj2.scale.set(4, 4, 4);
-            scene.add(obj2);
-
+        let carTopGeometry = new THREE.BoxGeometry(12, 8, 5);
+        let carTopMaterial = new THREE.MeshPhongMaterial({
+            color: 0xB74242,
+            shininess: 100,
+            emissive: 0x990000,
+            emissiveIntensity: 0.7
         });
 
-        //  Hotel.json
-        var objectLoader2 = new THREE.ObjectLoader();
-        objectLoader2.load("../../model/hotel-threejs/hotel.json", function (obj) {
-            var obj3 = obj.clone();
 
-            obj.position.y = -49;
-            obj.position.x = 45;
-            obj.position.z = -150;
-            scene.add(obj);
+        let wheelGeometry = new THREE.CylinderGeometry(3, 3, 1, 6);
+        let wheelMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
 
-            obj3.position.y = -49;
-            obj3.position.x = -65;
-            obj3.position.z = -150;
-            scene.add(obj3);
 
-        });
+        function Car(color) {
 
-        //  Male.js
-        var objects = [];
+            THREE.Object3D.apply(this, arguments);
 
-        var maleTexture = new THREE.TextureLoader().load('../../model/obj/male02/male-02-1noCulling.JPG');
-        var treeMaterial = new THREE.MeshPhongMaterial({color: 0xcccccc, side: THREE.DoubleSide, map: maleTexture});
-        var loader = new THREE.LegacyJSONLoader();
-        loader.load('../../model/obj/male02/Male02_slim.js', function (geometry) {
 
-            for (var i = 0; i < 100; i++) {
-                var mesh = new THREE.Mesh(geometry, treeMaterial);
-                mesh.position.x = Math.random() * 200 - 150;
-                mesh.position.y = -49;
-                mesh.position.z = Math.random() * 200 - 250;
+            let carBody = new THREE.Mesh(carGeometry, carMaterial);
+            carBody.castShadow = true;
+            carBody.receiveShadow = true;
+            this.add(carBody);
 
-                mesh.scale.x = mesh.scale.y = mesh.scale.z = 1 / 50;
-                objects.push(mesh);
-                scene.add(mesh);
+            let carTop = new THREE.Mesh(carTopGeometry, carTopMaterial);
+            carTop.position.x -= 2;
+            carTop.position.z += 3.5;
+            carTop.castShadow = true;
+            carTop.receiveShadow = true;
+
+            this.add(carTop);
+
+            this.castShadow = true;
+            this.receiveShadow = true;
+
+            /*////////////////////////////////////////*/
+
+            var light = new THREE.PointLight(0xFFFFFF, 1, 0);
+            light.position.z = 25;
+            light.position.x = 5;
+
+            light.castShadow = true;
+            light.shadow.mapSize.width = 512;
+            light.shadow.mapSize.height = 512;
+            light.shadow.camera.near = 0.1;
+            light.shadow.camera.far = 50;
+            light.shadow.bias = 0.1;
+            light.shadow.radius = 5;
+
+            light.power = 3;
+
+            this.add(light);
+
+
+            /*////////////////////////////////////////*/
+
+
+            this.wheels = Array(4).fill(null);
+            this.wheels = this.wheels.map((wheel, i) => {
+                wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+                wheel.position.y = i < 2 ? 6 : -6;
+                wheel.position.x = i % 2 ? 6 : -6;
+                wheel.position.z = -3;
+                this.add(wheel);
+                return wheel;
+            });
+
+            /*////////////////////////////////////////*/
+
+            this.lights = Array(2).fill(null);
+            this.lights = this.lights.map((light, i) => {
+
+                light = new THREE.SpotLight(0xffffff);
+                light.position.x = 11;
+                light.position.y = i < 1 ? -3 : 3;
+                light.position.z = -3;
+                light.angle = Math.PI / 3.5;
+
+                light.castShadow = true;
+
+                light.shadow.mapSize.width = 512;
+                light.shadow.mapSize.height = 512;
+
+                light.shadow.camera.near = 1;
+                light.shadow.camera.far = 400;
+                light.shadow.camera.fov = 40;
+
+                light.target.position.y = i < 1 ? -0.5 : 0.5;
+                light.target.position.x = 35;
+
+                this.add(light.target);
+                this.add(light);
+
+                return light;
+            });
+
+
+
+        }
+
+        Car.prototype = Object.assign(THREE.Object3D.prototype, {
+            constructor: Car,
+            maxspeed: 3,
+            speed: 0,
+            angle: 0,
+            steering: 0,
+            lightsOn: true,
+
+            update() {
+                var prev = {
+                    x: this.position.x,
+                    y: this.position.y,
+                    rot: this.rotation.z
+                };
+
+                if (keys[32]) { 
+                    this.position.z += 0.5
+                    setTimeout(function(){
+                        car.position.z -= 0.5
+                    },100)
+                }
+
+                var steerPower = 0.0006;
+
+                if (keys[39] || keys[68]) {
+                    this.steering += this.steering > -.01 ? steerPower : 0;
+
+                } else if (keys[37] || keys[65]) {
+                    this.steering -= this.steering < .01 ? steerPower : 0;
+                } else {
+                    this.steering *= 0.92;
+                }
+
+                if (keys[38] || keys[87]) {
+                    this.speed += this.speed < this.maxspeed ? 0.04 : 0;
+                } else if (keys[40] || keys[83]) {
+                    this.speed -= this.speed > -this.maxspeed / 2 ? 0.04 : 0;
+                } else {
+                    this.speed *= 0.96;
+                }
+
+                this.speed *= 1 - Math.abs(this.steering / 2);
+
+                this.angle += this.steering * this.speed;
+
+                if (this.wheels) {
+                    this.wheels.forEach((wheel, i) => {
+                        wheel.rotation.y += 0.1 * this.speed;
+
+                    });
+                }
+
+                var xdir = this.speed * Math.cos(this.angle);
+                var ydir = this.speed * Math.sin(this.angle);
+
+                this.position.x += xdir;
+                this.position.y += -ydir;
+                this.rotation.z = -this.angle;
+
+                if (this.lights) {
+                    this.lights.forEach((light, i) => {
+                        light.rotation.z = this.angle;
+                        light.target.position.clone(this.position);
+                        light.target.position.x += 10;
+                        light.target.position.y += i < 1 ? -0.5 : 0.5;
+                        light.target.updateMatrixWorld();
+                    });
+
+                    if (keys[76]) {
+
+                        keys[76] = false;
+                        this.lightsOn = !this.lightsOn;
+
+                        TweenMax.staggerTo(this.lights, 0.3, {
+                            intensity: this.lightsOn ? 1 : 0,
+                            ease: RoughEase.ease
+                        },
+                            0.02);
+
+                    }
+                }
+
+                this.position.x = this.position.x > 2490 || this.position.x < -2490 ? prev.x : this.position.x;
+                this.position.y = this.position.y > 2490 || this.position.y < -2490 ? prev.y : this.position.y;
+
+                camera.position.x += (this.position.x - camera.position.x) * 0.1;
+                camera.position.y = this.position.y - 80 - this.speed * 10;
+
+                camera.lookAt(
+                    new THREE.Vector3(
+                        this.position.x,
+                        this.position.y,
+                        10
+                    ));
+
             }
         });
 
-        var objectloader4 = new THREE.ObjectLoader();
-        objectloader4.load("../../model/plane-fight-threejs/plane-fight.json", function (obj) {
+        var keys = [];
 
-            planeFight = obj;
-            planeFight.add(spotLight);
-            planeFight.scale.set(2, 2, 2);
-            scene.add(planeFight);
-
-            tween = new TWEEN.Tween(planeFight.position).to(target, 5000);
-            tween.delay(200);
-            tween.easing(TWEEN.Easing.Quartic.InOut);
-        });
-        //  DeadTree.obj and DeadTree.mtl
-        var mtlLoader = new THREE.MTLLoader();
-        mtlLoader.setPath('../../model/DeadTree/');
-        mtlLoader.load('DeadTree.mtl', function (materials) {
-
-            materials.preload();
-
-            var objLoader = new THREE.OBJLoader();
-            objLoader.setMaterials(materials);
-            objLoader.setPath('../../model/DeadTree/');
-            objLoader.load('DeadTree.obj', function (object) {
-
-                object.scale.x = object.scale.y = object.scale.z = 4;
-                object.position.y = -49;
-                object.position.x = 49;
-                object.position.z = -250;
-                scene.add(object);
-            });
+        document.body.addEventListener("keydown", function (e) {
+            keys[e.keyCode] = true;
+            e.preventDefault();
         });
 
-        //  Add  ambient lighting
-        var ambiColor = "#ffffff";
-        var ambientLight = new THREE.AmbientLight(ambiColor, 1);
-        scene.add(ambientLight);
+        document.body.addEventListener("keyup", function (e) {
+            keys[e.keyCode] = false;
+            e.preventDefault();
+        });
 
+        let car = new Car();
+        scene.add(car);
 
-         gltfloader1 = new THREE.GLTFLoader();
+        renderCalls.push(car.update.bind(car));
 
-        gltfloader1.load('../../model/gltf/dragon/scene.gltf', function (gltf) {
-           dragon = gltf.scene;
-           console.log(dragon);
-            dragon.children[0].children[0].children[0].children[3].visible = false;
-               dragon.scale.set(10,10,10);
-               dragon.position.set(0,-45,0);
-            scene.add(dragon);
+        let count = 3;
+        function render() {
+
+            requestAnimationFrame(render);
+            count += 0.03;
+
+            renderCalls.forEach(callback => {
+                callback();
             });
 
+            renderer.toneMappingExposure = Math.pow(0.91, 5.0);
+            renderer.render(scene, camera);
 
-    }
+        };
 
-    function animate() {
+        render();
 
-        renderer.render(scene, camera);
-        TWEEN.update();
-        controls.update();
-        requestAnimationFrame(animate);
-    }
 
-    /*
-    https://www.w3.org/2002/09/tests/keys.html
-    use this site to find your keycode
-    useful sites for tween js
-    http://sole.github.io/tween.js/examples/03_graphs.html
-    */
-    //  Code 87 == W key
-    function onDocumentKeyUp(event) {
-
-        if (event.keyCode === 87) {
-
-            tweenPlane();
-            tween.start();
-        }
-    }
-
-    //  Randomize target
-    function tweenPlane() {
-
-        target.x = Math.random() * 1400 - 700;
-        target.y = Math.random() * 200 - 48;
-        target.z = Math.random() * 1200 - 900;
-    }
-</script>
+    </script>
 </body>
+
 </html>
