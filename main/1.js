@@ -17,6 +17,11 @@
  var target = { x: 100, y: 100, z: 100 };
  var box;
 
+
+ var world, mass, body, shape, timeStep = 1 / 60, geometry, material, mesh;
+var groundBody, groundShape, cannonDebugRenderer;
+var phsyicRenderer = false;
+
  init();
  animate();
 

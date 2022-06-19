@@ -37,6 +37,8 @@
     <script type="text/javascript" src="DDSLoader.js"></script>
     <script type="text/javascript" src="MTLLoader.js"></script>
     <script type="text/javascript" src="OBJLoader.js"></script>
+    <script type="text/javascript" src="cannon.js"></script>
+    <script type="text/javascript" src="CannonDebugRenderer.js"></script>
 
 
 </head>
@@ -54,12 +56,17 @@
         /*////////////////////////////////////////*/
 
         var scene, camera, renderer, orbit, light;
+        var world, mass, body, shape, timeStep = 1 / 60, geometry, material, mesh;
+        var groundBody, groundShape, cannonDebugRenderer;
+        var phsyicRenderer = false;
+        var particles, geometry, materials = [], parameters, i, h, color, sprite, size;
+        var mouse = new THREE.Vector2();
         let renderCalls = [];
 
         scene = new THREE.Scene();
-        scene.fog = new THREE.Fog(0x242426, 10, 2);
+        scene.fog = new THREE.Fog(0x242426, 200, 300);
 
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 10, 600);
+        camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 10, 800);
         camera.position.z = 90;
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -71,21 +78,21 @@
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-        window.addEventListener('resize', function () {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }, false);
+        window.addEventListener('resize',onWindowResize , false);
 
         document.body.appendChild(renderer.domElement);
 
         /*////////////////////////////////////////*/
 
 
-        let hemiLight = new THREE.HemisphereLight(0xEBF7FD, 0xEBF7FD, 0.6);
+        let hemiLight = new THREE.HemisphereLight(0xEBF7FD, 0xEBF7FD, 0.8);
 
         hemiLight.position.set(50, 30, 30);
         scene.add(hemiLight);
+
+        /*////////////////////////////////////////*/
+
+
 
         /*////////////////////////////////////////*/
 
@@ -111,26 +118,58 @@
         textureRoad.magFilter = THREE.LinearFilter;
         textureRoad.minFilter = THREE.LinearMipMapLinearFilter;
 
+
+        /***************************************/
+
+
+        var textureLoader = new THREE.TextureLoader();
+
+        sprite1 = textureLoader.load("../particle/snowflake1.png");
+
+
+        parameters = [
+            [[0.90, 0.05, 0.5], sprite1, 3],
+        ];
+
+
+        for (i = 0; i < parameters.length; i++) {
+
+            color = parameters[i][0];
+            sprite = parameters[i][1];
+            size = parameters[i][2];
+
+            materials[i] = new THREE.PointsMaterial({
+                size: size,
+                map: sprite,
+                blending: THREE.AdditiveBlending,
+                depthTest: false,
+                transparent: true
+            });
+
+            materials[i].color.setHSL(color[0], color[1], color[2]);
+
+            particles = new THREE.Points(geometry, materials[i]);
+            particles.rotation.x = Math.random() * 6;
+            particles.rotation.y = Math.random() * 6;
+            particles.rotation.z = Math.random() * 6;
+            scene.add(particles);
+
+            renderer.domElement.addEventListener('mousemove', onDocumentMouseMove, false);
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
         /*////////////////////////////////////////*/
 
         let carGeometry = new THREE.BoxGeometry(20, 10, 3);
         let carMaterial = new THREE.MeshPhongMaterial({
-            color: 0xB74242,
-
+            color: 0x1abc9c,
 
             shininess: 100,
-            emissive: 0xFF0000,
+            emissive: 0x1abc9c,
             emissiveIntensity: 0.6
         });
 
 
-        let carTopGeometry = new THREE.BoxGeometry(12, 8, 5);
-        let carTopMaterial = new THREE.MeshPhongMaterial({
-            color: 0xB74242,
-            shininess: 100,
-            emissive: 0x990000,
-            emissiveIntensity: 0.7
-        });
 
 
         let wheelGeometry = new THREE.CylinderGeometry(3, 3, 1, 6);
@@ -146,14 +185,6 @@
             carBody.castShadow = true;
             carBody.receiveShadow = true;
             this.add(carBody);
-
-            let carTop = new THREE.Mesh(carTopGeometry, carTopMaterial);
-            carTop.position.x -= 2;
-            carTop.position.z += 3.5;
-            carTop.castShadow = true;
-            carTop.receiveShadow = true;
-
-            this.add(carTop);
 
             this.castShadow = true;
             this.receiveShadow = true;
@@ -238,11 +269,11 @@
                     rot: this.rotation.z
                 };
 
-                if (keys[32]) { 
+                if (keys[32]) {
                     this.position.z += 0.5
-                    setTimeout(function(){
+                    setTimeout(function () {
                         car.position.z -= 0.5
-                    },100)
+                    }, 100)
                 }
 
                 var steerPower = 0.0006;
@@ -333,8 +364,24 @@
             e.preventDefault();
         });
 
+        var listener = new THREE.AudioListener();
+        camera.add(listener);
+
+        audioLoader = new THREE.AudioLoader();
+
         let car = new Car();
+        soundX = new THREE.PositionalAudio(listener);
+        audioLoader.load('../sound/sound.mp3', function (buffer) {
+            soundX.setBuffer(buffer);
+            soundX.setRefDistance(100);
+        });
+        soundX.play();
+        car.add(soundX);
+
         scene.add(car);
+
+
+
 
         renderCalls.push(car.update.bind(car));
 
@@ -352,6 +399,21 @@
             renderer.render(scene, camera);
 
         };
+
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+
+        function onDocumentMouseMove(event) {
+
+            event.preventDefault();
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        }
 
         render();
 
